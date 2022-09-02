@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 from ib_insync import *
 from threading import Thread
 from itertools import islice
@@ -98,4 +96,63 @@ def process(tlist):
         count += 1
 
         stock = stockstore[t]['contract']
-... (61 Zeilen verbleibend)
+        ticker = stockstore[t]['ticker']
+        price = ticker.last
+
+        # get the options chains for each ticker
+        chains = ib.reqSecDefOptParams(stock.symbol, '', stock.secType, stock.conId)
+        chain = next(c for c in chains if c.exchange == 'SMART')
+
+        # get the closest expiration's chain
+        # filter and create contracts for only those that are at least X% otm
+        try:
+            strikes = [strike for strike in chain.strikes if percent_diff(price, strike) >= PERCENT_OTM]
+        except (ValueError, ZeroDivisionError):
+            continue
+        expirations = sorted(exp for exp in chain.expirations)[:1]
+        rights = ['P','C']
+        contracts = [Option(stock.symbol, expiration, strike, right, 'SMART')
+                for right in rights
+                for expiration in expirations
+                for strike in strikes if right == 'P' and strike < price or right == 'C' and strike > price]
+        contracts = ib.qualifyContracts(*contracts)
+
+        # get the market data for all of these options contracts
+        tickers = ib.reqTickers(*contracts)
+
+        # print contracts if they have a bid size > 0
+        for tick in tickers:
+            if tick.bidSize > 0:
+                symbol_date = datetime.datetime.strptime(tick.contract.lastTradeDateOrContractMonth, '%Y%m%d').strftime('%m%d%y')
+                option_symbol = f"{tick.contract.symbol}_{symbol_date}{tick.contract.right}{float_is_integer(tick.contract.strike)}"
+                bid_size = tick.bidSize
+                otm = percent_diff(price, tick.contract.strike)
+                dte = get_dte(option_symbol, tick.contract.right)
+                f.write(f'Symbol: {option_symbol}\tDTE: {dte}\t%OTM: {otm}\tBid Size: {bid_size}\n')
+
+    ib.disconnect()
+    f.close()
+
+def main():
+
+    try:
+        os.remove('output.csv')
+    except FileNotFoundError:
+        pass
+
+    tickers = get_tickers()
+    splits = grouper(20, tickers)
+
+    for array in splits:
+        process_thread = Thread(target=process, args=(array,))
+        # process_thread.daemon = True
+        process_thread.start()
+        time.sleep(1)
+
+
+##### USER VARIABLES #####
+PERCENT_OTM = 30
+##### END USER VARIABLES #####
+
+# Start main() function
+main()
