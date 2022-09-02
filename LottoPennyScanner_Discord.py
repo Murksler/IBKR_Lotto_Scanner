@@ -7,6 +7,9 @@ import random
 import asyncio
 import datetime
 import math
+import os
+
+os.system("")  # enables ansi escape characters in terminal
 
 class BCOLORS:
 
