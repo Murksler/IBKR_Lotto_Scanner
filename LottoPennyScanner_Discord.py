@@ -8,6 +8,7 @@ import asyncio
 import datetime
 import math
 import os
+import logging
 
 os.system("")  # enables ansi escape characters in terminal
 
@@ -157,6 +158,8 @@ def process(tlist):
 
 def main():
 
+    logging.getLogger('ib_insync.wrapper').setLevel(logging.FATAL)
+
     while 1:
         tickers = get_tickers()
         ticker_batch = math.ceil(len(tickers) / THREADS)
@@ -174,13 +177,15 @@ def main():
         if len(output) > 1:
             print('\n'.join(output))
 
+        del output[1:]
+
         print(f'Next run in {FREQUENCY} minutes...')
         time.sleep(FREQUENCY * 60)
 
 
 # USER VARIABLES
 PERCENT_OTM = 30
-FREQUENCY = 3  # minutes to sleep before re-running
+FREQUENCY = 5  # minutes to sleep before re-running
 DTE_MAX = 11  # the furthest penny you want to farm
 # END USER VARIABLES
 
