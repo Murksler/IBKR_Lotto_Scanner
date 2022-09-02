@@ -8,6 +8,21 @@ import asyncio
 import datetime
 import math
 
+class BCOLORS:
+
+    HEADER = '\033[95m'
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    RED = '\033[91m'
+    BOLD = '\033[1m'
+    CYAN = '\033[96m'
+    WHITE = '\033[97m'
+    YELLOW = '\033[93m'
+    MAGENTA = '\033[95m'
+    GRAY = '\033[90m'
+    BLACK = '\033[90m'
+    ENDC = '\033[0m'
+
 
 def grouper(n, iterable):
 
@@ -129,7 +144,10 @@ def process(tlist):
                 otm = percent_diff(price, tick.contract.strike)
                 dte = get_dte(option_symbol, tick.contract.right)
                 if dte <= DTE_MAX:
-                    output.append(f'{option_symbol : <15}{dte: ^10}{otm: ^10}{bid_size : >10}')
+                    if tick.contract.right == 'P':
+                        output.append(f'{BCOLORS.RED}{option_symbol : <15}{dte: ^10}{otm: ^10}{bid_size : >10}{BCOLORS.ENDC}')
+                    if tick.contract.right == 'C':
+                        output.append(f'{BCOLORS.CYAN}{option_symbol : <15}{dte: ^10}{otm: ^10}{bid_size : >10}{BCOLORS.ENDC}')
 
     ib.disconnect()
 
@@ -159,13 +177,12 @@ def main():
 
 # USER VARIABLES
 PERCENT_OTM = 30
-FREQUENCY = 10  # minutes to sleep before re-running
+FREQUENCY = 3  # minutes to sleep before re-running
 DTE_MAX = 11  # the furthest penny you want to farm
-SORT = 'otm'  # 'otm' or 'dte' or 'ticker', how you want it sorted
 # END USER VARIABLES
 
 # DO NOT EDIT -- unless you know what you're doing, but don't ping me on Discord about this
-output = [f"{'Symbol': <15}{'DTE': ^10}{'% OTM': ^10}{'Bid Size': >10}"]
+output = [f"{BCOLORS.HEADER}{'Symbol': <15}{'DTE': ^10}{'% OTM': ^10}{'Bid Size': >10}{BCOLORS.ENDC}"]
 THREADS = 8
 
 # Start main() function
